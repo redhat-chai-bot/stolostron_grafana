@@ -145,6 +145,20 @@ func TestUploadToGCS_DefaultCredentials(t *testing.T) {
 	})
 }
 
+func TestUploadToGCS_RejectsNonServiceAccountKeyFile(t *testing.T) {
+	imagePath := filepath.Join(t.TempDir(), "test.png")
+	require.NoError(t, os.WriteFile(imagePath, []byte("test\n"), 0600))
+
+	keyFile := filepath.Join(t.TempDir(), "credentials.json")
+	require.NoError(t, os.WriteFile(keyFile, []byte(`{"type":"authorized_user"}`), 0600))
+
+	uploader, err := NewUploader(keyFile, "test", "", false, dfltExpiration)
+	require.NoError(t, err)
+
+	_, err = uploader.Upload(context.Background(), imagePath)
+	require.EqualError(t, err, `google: expected credential type "service_account", found "authorized_user"`)
+}
+
 type signedURLOptsMatcher struct {
 	opts *storage.SignedURLOptions
 }
