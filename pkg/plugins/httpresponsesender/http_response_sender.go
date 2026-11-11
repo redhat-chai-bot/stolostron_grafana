@@ -15,7 +15,6 @@ import (
 type HTTPResponseSender struct {
 	processedStreams int
 	w                http.ResponseWriter
-	status           int
 }
 
 // New creates a new HTTPResponseSender.
@@ -48,17 +47,11 @@ func (s *HTTPResponseSender) Send(resp *backend.CallResourceResponse) error {
 			}
 		}
 
-		s.status = resp.Status
 		s.w.WriteHeader(resp.Status)
 	}
 
-	// Skip writing body for status codes that do not allow one per HTTP spec
-	// (1xx informational, 204 No Content, 304 Not Modified). Go 1.26+
-	// enforces this and returns an error from ResponseWriter.Write.
-	if bodyAllowedForStatus(s.status) {
-		if _, err := s.w.Write(resp.Body); err != nil {
-			return fmt.Errorf("failed to write resource response: %v", err)
-		}
+	if _, err := s.w.Write(resp.Body); err != nil {
+		return fmt.Errorf("failed to write resource response: %v", err)
 	}
 
 	if flusher, ok := s.w.(http.Flusher); ok {
@@ -67,20 +60,6 @@ func (s *HTTPResponseSender) Send(resp *backend.CallResourceResponse) error {
 
 	s.processedStreams++
 	return nil
-}
-
-// bodyAllowedForStatus reports whether a given response status code
-// permits a body. See RFC 7230, section 3.3.
-func bodyAllowedForStatus(status int) bool {
-	switch {
-	case status >= 100 && status <= 199:
-		return false
-	case status == http.StatusNoContent: // 204
-		return false
-	case status == http.StatusNotModified: // 304
-		return false
-	}
-	return true
 }
 
 var _ backend.CallResourceResponseSender = &HTTPResponseSender{}
