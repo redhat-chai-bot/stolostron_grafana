@@ -654,7 +654,7 @@ func TestIntegrationGetOrgIdByAccessToken(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, savedDashboard.OrgID, orgID)
 
-		_, err = publicdashboardStore.Delete(t.Context(), orgID, uid)
+		_, err = publicdashboardStore.Delete(t.Context(), uid)
 		require.NoError(t, err)
 
 		orgID, err = publicdashboardStore.GetOrgIdByAccessToken(t.Context(), at)
